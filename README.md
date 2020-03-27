@@ -1,7 +1,7 @@
-### BERT 코드 분석
+# BERT 코드 분석
 ## 한국어 BERT로 간단하게 해보기
 ## 데이터 생성
-# 개요
+### 개요
 *   BERT에 집어넣을 데이터를 생성하는 코드 (create_pretraining_data.py)
 *   입력: sample_text.txt◾
 *   엔터로 문단을 구분하고 문단별로 다른 것을 말하는 내용이 들어있는 것으로 생각하면 됨.
@@ -13,7 +13,7 @@
 *   BERT는 대용량 데이터를 사용하기 때문 tfrecord을 사용해야 한다고 보면 됨
 
 
-# 내용
+### 내용
 *   다양한 hyperparametr을 받음◾input_file: 위에서 설명
 *   output_file: 위에서 설명
 *   vocab_file: 사전에 구축되어 있는 voacb.txt◾
@@ -35,7 +35,7 @@
 *   pre-training 단계에서 <MASK> 예측이외의 학습인 NSP가 있는데 이를 위하여 is_random_next의 key가 있고 False, True의 값을 가진다.
 *   우리가 한국어 BERT을 만들기 위해서 준비해야할 것은 한글 코퍼스 vocab.txt와 한글 tokenizer을 이용한 코드 수정이라고 보면 될 것이다.
 
-# 실제 생성 과정
+### 실제 생성 과정
 *   한글 샘플 텍스트를 만들기 위하여 네이버기사 몇 개를 긁어서 생성◾
 *   Tokenizer은 Mecab 사용◾Mecab+python 사용하는 것은 https://sens.tistory.com/445 을 참고하여서 진행하면 됨.
 *   Mecab을 이용하여 사전 구축◾사전은 형태소는 고려하지 않고 글자로만 구성하였음.
@@ -53,13 +53,13 @@
 *   출력은 tfrecord의 파일이 생성
 
 ## Pre-training
-# 개요
+### 개요
 *   1번 단계에서 tfrecord 파일을 만들었다. (from create_pretraining_data.py)
 *   이제 BERT을 학습시키면되고 사용할코드는 run_pretraining.py 이다.
 *   입력: data.tfrecord
 *   출력: 학습된 BERT 모델
 
-# 내용
+### 내용
 *   몇 개의 인자를 받게 되어있는데 살펴보자◾bert_config_file: BERT 모델이 구성되는 여러 가지 파라미터를 적어둔 json 파일이다.◾ → 
 *   위의 왼쪽 스샷은 BERT의 base 모델을 가져온 것이고 본인이 원하는 숫자로 바꿔서 학습해도 된다.
 *   근데 한국어 BERT라고 굳이 다른 파라미터를 바꿀 필요는 없어보인다.
@@ -84,14 +84,14 @@
 
 ## Fine-tunning (MRC)
 
-# 개요
+### 개요
 *   이제 BERT 코드를 이용하여 fine-tunning을 해보자
 *   squad으로 돌려보고 korquad로 돌려보면서 한국어 BERT로 MRC에 적용시켜보자.
 *   한국어 BERT 자체를 pretraining으로 구축하기는 상당히 오래걸리므로, 오연택선임이 구축한 모델을 사용하였다.•구축한 모델은 mecab tokenizer을 사용하고 pos agging은 사용하지 않은 모델
 *   vocab은 128000개이다.
 *   단, 오선임이 수정한 run_squad 을 사용하지 않고 부분과 다르게 수정하였다.
 
-# 내용
+### 내용
 *   이 코드를 분석하면서 vocab_generation을 할 때, ##부분을 깜빡함을 인지하였다.◾단순히 run_pretraining을 할 때는 ##을 고려안해도 상관없다.
 *   실제로 이것을 fine_tunning할 때도 코드를 커스터마이징해서 쓸 수도 있다.
 *   하지만 기본적으로 BERT의 vocab 구성은 ##을 이용한다. (## 이용하는게 일반적)
@@ -119,7 +119,7 @@
 *   이 부분은 estimator으로 감싸져 있는 것 같다.
 *   따라서 pytorch-BERT을 사용할 떄는 논문을 참고해서 이 부분의 코드를 짜야한다.
 
-# 결과
+### 결과
 *   {"exact_match": 19.570488396259094, "f1": 80.1120485168468}◾f1은 잘나오는데 EM이 다른 korquad 모델에 비해 낮다
 *   어떤 문제점일까? (한 번 확인해봐야겠음)◾이 모델을 5 epoch 정도 학습하면 50 이상의 EM이 나온다고 한다.
 *   그리고 이러한 조사, 어미 등의 문제점은 두 가지 방법으로 해결할 수 있다.
@@ -131,3 +131,30 @@
 *   첫 번째 단어가 answer이고 두 번째 단어가 prediction이다.
 *   결과만 보면 학습은 제대로 된 것 같다. (즉 제대로된 학습 절차를 거친 것은 맞아보인다.)
 *   샘플들을 보아도 F1은 높게 측정이 될 것이고 EM은 낮을 거 같은게 보인다.
+
+## (변환) BERT Tensorflow 모델 Pytorch 모델로 사용하기 
+### 개요
+*   기본적으로 앞의 실험들은 (pretraining, fine-tunning) 텐서플로우로 진행하는 것이다.
+*   구글에서 제공한 공식 텐서플로우 코드였고 버전은 TF 1.4로 1점대 버전이다.
+*   이렇게 학습을 하기에는 다음과 같은 문제점이 있다고 판단한다.◾2점대 버전인 요즘 텐서플로우와는 사용방법의 거리가 있음
+*   기존에 사용하던 fine-tunning에는 squad처럼 코드의 일부분을 수정하여 사용은 가능하나
+*   가 원하는 뒷단의 layer 수정, 새로운 task에 fine-tunning 핸들링하는 것이 쉽지 않다.◾물론 구글식 텐서플로우 코드가 상당히 익숙하면 어렵지 않겠지만...
+*   따라서 비교적 사용법이 쉬운 huggingface 방식으로 파이토치로 변환하는 과정을 해보자.
+
+### 내용
+*   텐서플로우 모델을 파이토치에서 사용하는 것이 불가능하지는 않다. (처음 시도해봄)
+*   찾아보니 기본적으로는 파이토치에서 똑같은 모델을 코드로 짠 후, 텐서플로우 모델을 불러와 weight에 name별로 대입시켜서 파이토치 모델을 저장하여 사용한다.
+*   내가 맨땅에서 짠 텐서플로우 모델을 파이토치에서 사용하려면 이런 방법을 해야하는 것 같다.◾물론 변환해주는 라이브러리들도 있지만 자세히 안찾아봄 (사용법이 그렇게 간단해보이지는 않음)
+*   하지만 BERT는 매우매우 유명한 모델이고 huggingface에서 애초에 이런 변환작업을 많이 하였기 때문에 BERT 계열 모델들은 변환을 하는 가이드가 있다.◾https://huggingface.co/transformers/converting_tensorflow_models.html
+*   1) Bert/GPT/GPT-2/Transformer-XL/XLNet/XLM 의 모델들을 변환할 수 있다
+*   2) model.ckpt와 config.json이 필요하다.
+*   3) 주어진 스크립트를 실행하면 model.bin이 생성된다.
+*   4) 이 모델을 사용하기 위해서는 config.json과 vocab.txt가 필요하다.
+*   model.bin을 실제 사용하는 과정◾사용할 떄는 https://huggingface.co/transformers/main_classes/model.html 의 링크를 참고하면 된다.
+*   여기서 2번째 셀은 현재 주석 처리 되어있는데 이 방법은 model.bin으로 저장안하고 텐서플로우 모델을 바로 파이토치로 부르는 것이다.
+*   하지만 이 방법은 로딩하는데 시간이 오래걸리고 기존의 BERT와 모델이 다른 경우는 error가 난다 (가령 vocab size가 다르다거나, hidden state 차원이 다르다거나)
+*   이 모델을 사용하기 위해서는 token_idx을 넣어줘야하는데 tokenizer는 custom tokenizer이기 때문에 따로 파일을 불러읽어야 한다.
+*   이 코드는 기존의 BERT 학습시킬 때 사용했던 tokenization 파일이다.
+*   이제는 다음과 같이 사용하면 된다.
+*   뒷 부분의 학습이나 fine-tunning은 불러 읽어들인 모델에 custom하게 코드를 짜서 사용하면 된다.
+*   즉 기존의 영어 등의 pretrained_model을 사용하는 것과 같다.
